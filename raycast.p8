@@ -1,14 +1,12 @@
 pico-8 cartridge // http://www.pico-8.com
 version 16
 __lua__
-distance = 50
-fov = 0.5
-
 function _init()
  player = {
   x = 8,
-  y = 4.5,
-  direction = {-1,0}
+  y = 4,
+  direction = {-1,0},
+  camera = {0, .66}
  }
 end
 
@@ -34,15 +32,16 @@ function vec_rotate(vec, angle)
  return vx * cos(angle) - vy * sin(angle), vx * sin(angle) + vy * cos(angle)
 end
 
-function get_camera_vec(player)
- return player.direction[2] * fov, player.direction[1] * fov
+function get_camera_vec(x, player)
+ camera_x = 2 * x / 127
+ return player.direction[1] + player.camera[1] * camera_x,
+        player.direction[2] + player.camera[2] * camera_x
 end
 
 function get_ray_vec(x, player)
- camera = {get_camera_vec(player)}
+ camera = {get_camera_vec(x, player)}
  -- how far down the correct side of the camera vector
- camera_x = 2 * x / 128 - 1
- return vec_add(player.direction, {vec_mul_scalar(camera, camera_x)})
+ return vec_add(player.direction, camera)
 end
 
 function get_next_wall(player, ray_vec)
@@ -103,7 +102,8 @@ function cast_ray(x, player)
   l_end = 127
  end
 
- line(x, l_start, x, l_end, tile)
+ -- todo: this is reversed for some unknown reason
+ line(128-x, l_start, 128-x, l_end, tile)
 end
 
 function _draw()
@@ -113,14 +113,18 @@ function _draw()
  end
  print(player.direction[1]..","..player.direction[2], 0, 0, 8)
  print(player.x..","..player.y, 0, 8, 8)
+
+ line(118, 10, 118 + player.direction[1] * 5, 10 + player.direction[2] * 5)
 end
 
 function _update()
  if(btn(0)) then -- left
-  player.direction = {vec_rotate(player.direction, -.02)}
+  player.direction = {vec_rotate(player.direction, .02)}
+  player.camera = {vec_rotate(player.camera, .02)}
  end
  if(btn(1)) then -- right
-  player.direction = {vec_rotate(player.direction, .02)}
+  player.direction = {vec_rotate(player.direction, -.02)}
+  player.camera = {vec_rotate(player.camera, -.02)}
  end
  if(btn(2)) then -- up
   player.x += .1 * player.direction[1]
